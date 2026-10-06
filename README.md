@@ -44,4 +44,5 @@ app/
 2. Open the project folder in Android Studio and let Gradle sync automatically.
 3. Select a device/emulator from the device dropdown.
 4. Click **Run** (▶) or use:
+
 `./gradlew installDebug`
