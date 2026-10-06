@@ -8,6 +8,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.yertaypert.foodrescue.data.SampleData
+import com.yertaypert.foodrescue.ui.screens.DetailScreen
 import com.yertaypert.foodrescue.ui.screens.FeedScreen
 
 object Routes {
@@ -33,8 +34,11 @@ fun AppNavHost() {
             route = Routes.DETAIL,
             arguments = listOf(navArgument("listingId") { type = NavType.IntType })
         ) { entry ->
-            val id = entry.arguments?.getInt("listingId")
-            Text("Detail placeholder, id = $id") // replaced in next step
+            val id = entry.arguments?.getInt("listingId") ?: -1
+            DetailScreen(
+                listingId = id,
+                onBack = { navController.popBackStack() }
+            )
         }
         composable(Routes.PROFILE) {
             Text("Profile placeholder") // replaced later
