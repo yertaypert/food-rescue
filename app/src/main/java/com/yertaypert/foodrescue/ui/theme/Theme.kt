@@ -9,12 +9,15 @@ import androidx.compose.runtime.Composable
 private val LightColorScheme = lightColorScheme(
     primary = FoodOrange,
     onPrimary = FoodWhite,
+    primaryContainer = FoodOrangeLight,
 
     secondary = FoodOrangeDark,
     onSecondary = FoodWhite,
+    secondaryContainer = FoodOrange,
 
     tertiary = FoodOrangeLight,
     onTertiary = FoodText,
+    tertiaryContainer = FoodBackground,
 
     background = FoodBackground,
     onBackground = FoodText,
@@ -22,16 +25,18 @@ private val LightColorScheme = lightColorScheme(
     surface = FoodWhite,
     onSurface = FoodText
 )
-
 private val DarkColorScheme = darkColorScheme(
     primary = FoodOrange,
     onPrimary = FoodWhite,
+    primaryContainer = FoodOrangeDark,
 
     secondary = FoodOrangeDark,
     onSecondary = FoodWhite,
+    secondaryContainer = FoodOrange,
 
     tertiary = FoodOrangeLight,
     onTertiary = FoodText,
+    tertiaryContainer = FoodBackground,
 
     background = FoodText,
     onBackground = FoodWhite,

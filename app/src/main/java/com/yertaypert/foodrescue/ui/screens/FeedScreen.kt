@@ -91,12 +91,12 @@ fun FeedScreen(
                     icon = { Icon(Icons.Outlined.Home, contentDescription = null) },
                     label = { Text("Feed") }
                 )
-                NavigationBarItem(
-                    selected = false,
-                    onClick = {},
-                    icon = { Icon(Icons.Outlined.AddCircleOutline, contentDescription = null) },
-                    label = { Text("Post") }
-                )
+//                NavigationBarItem(
+//                    selected = false,
+//                    onClick = {},
+//                    icon = { Icon(Icons.Outlined.AddCircleOutline, contentDescription = null) },
+//                    label = { Text("Post") }
+//                )
                 NavigationBarItem(
                     selected = false,
                     onClick = {},

@@ -10,10 +10,12 @@ import androidx.navigation.navArgument
 import com.yertaypert.foodrescue.data.SampleData
 import com.yertaypert.foodrescue.ui.screens.DetailScreen
 import com.yertaypert.foodrescue.ui.screens.FeedScreen
+import com.yertaypert.foodrescue.ui.screens.LoginScreen
 
 object Routes {
     const val FEED = "feed"
     const val DETAIL = "detail/{listingId}"
+    const val LOGIN = "login"
     const val PROFILE = "profile"
     fun detail(id: Int) = "detail/$id"
 }
@@ -37,11 +39,23 @@ fun AppNavHost() {
             val id = entry.arguments?.getInt("listingId") ?: -1
             DetailScreen(
                 listingId = id,
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                onLogin = { navController.navigate(Routes.LOGIN) },
+                onRegisterUser = {},   // wired with the Sign-up screen
+                onRegisterGiver = {}   // wired with the Sign-up screen
+            )
+        }
+        composable(Routes.LOGIN) {
+            LoginScreen(
+                onBack = { navController.popBackStack() },
+                onSubmit = { _, _ -> /* UI only for now */ },
+                onForgotPassword = {},
+                onRegisterUser = {},   // Sign up routes come with the next screen
+                onRegisterGiver = {}
             )
         }
         composable(Routes.PROFILE) {
-            Text("Profile placeholder") // replaced later
+            Text("Profile (placeholder)")
         }
     }
 }
