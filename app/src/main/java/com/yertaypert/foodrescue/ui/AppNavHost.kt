@@ -10,6 +10,7 @@ import androidx.navigation.navArgument
 import com.yertaypert.foodrescue.data.SampleData
 import com.yertaypert.foodrescue.ui.screens.BusinessSignUpScreen
 import com.yertaypert.foodrescue.ui.screens.DetailScreen
+import com.yertaypert.foodrescue.ui.screens.FeedRoute
 import com.yertaypert.foodrescue.ui.screens.FeedScreen
 import com.yertaypert.foodrescue.ui.screens.LoginScreen
 import com.yertaypert.foodrescue.ui.screens.SignUpScreen
@@ -30,11 +31,8 @@ fun AppNavHost() {
 
     NavHost(navController = navController, startDestination = Routes.FEED) {
         composable(Routes.FEED) {
-            FeedScreen(
-                listings = SampleData.listings,
+            FeedRoute(
                 onListingClick = { id -> navController.navigate(Routes.detail(id)) },
-                // Logged out for now, so Profile leads to Login.
-                // Later: if (isLoggedIn) Routes.PROFILE else Routes.LOGIN
                 onProfileClick = { navController.navigate(Routes.LOGIN) }
             )
         }

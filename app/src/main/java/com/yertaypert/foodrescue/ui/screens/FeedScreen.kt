@@ -8,6 +8,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AddCircleOutline
 import androidx.compose.material.icons.outlined.Home
@@ -46,18 +53,15 @@ import com.yertaypert.foodrescue.ui.theme.FoodRescueTheme
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FeedScreen(
-    listings: List<Listing>,
+    uiState: FeedUiState,
+    onCategorySelected: (Category) -> Unit,
+    onFavouriteClick: (Int) -> Unit,
+    onRetry: () -> Unit,
     onListingClick: (Int) -> Unit,
     onProfileClick: () -> Unit,
     modifier: Modifier = Modifier,
     onNotificationsClick: () -> Unit = {}
 ) {
-    var selectedCategory by remember { mutableStateOf<Category?>(null) }
-
-    val filtered = remember(listings, selectedCategory) {
-        listings.filter { selectedCategory == null || it.category == selectedCategory }
-    }
-    val endingSoon = remember(filtered) { filtered.sortedBy { it.minutesLeft }.take(5) }
 
     Scaffold(
         modifier = modifier,
@@ -116,61 +120,105 @@ fun FeedScreen(
                     items(Category.entries, key = { it.name }) { category ->
                         CategoryChip(
                             category = category,
-                            selected = category == selectedCategory,
-                            onClick = {
-                                selectedCategory =
-                                    if (selectedCategory == category) null else category
-                            }
+                            selected = category == uiState.selectedCategory,
+                            onClick = { onCategorySelected(category) }
                         )
                     }
                 }
             }
 
-            if (filtered.isEmpty()) {
-                item {
+            when {
+                uiState.isLoading -> item { LoadingState() }
+                uiState.error != null -> item { ErrorState(uiState.error, onRetry) }
+                uiState.listings.isEmpty() -> item {
                     EmptyState(
                         title = "No listings right now",
                         message = "Nothing matches here yet. Try another category or check back soon."
                     )
                 }
-            } else {
-                item { SectionHeader(title = "Ending soon") }
-                item {
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                        items(endingSoon, key = { it.id }) { listing ->
-                            EndingSoonCard(listing, onClick = { onListingClick(listing.id) })
+
+                else -> {
+                    item { SectionHeader(title = "Ending soon") }
+                    item {
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                            items(uiState.endingSoon, key = { it.id }) { listing ->
+                                EndingSoonCard(listing, onClick = { onListingClick(listing.id) })
+                            }
                         }
                     }
-                }
-                item { SectionHeader(title = "Near you") }
-                items(filtered, key = { it.id }) { listing ->
-                    ListingCard(listing, onClick = { onListingClick(listing.id) })
+                    item { SectionHeader(title = "Near you") }
+                    items(uiState.listings, key = { it.id }) { listing ->
+                        ListingCard(
+                            listing = listing,
+                            isFavourite = listing.id in uiState.favouriteIds,
+                            onFavouriteClick = { onFavouriteClick(listing.id) },
+                            onClick = { onListingClick(listing.id) }
+                        )
+                    }
                 }
             }
         }
     }
 }
 
-@Preview(showBackground = true)
+// Route: knows the ViewModel
 @Composable
-private fun FeedScreenPreview() {
-    FoodRescueTheme  {
-        FeedScreen(SampleData.listings, onListingClick = {}, onProfileClick = {})
+fun FeedRoute(
+    onListingClick: (Int) -> Unit,
+    onProfileClick: () -> Unit,
+    viewModel: FeedViewModel = viewModel()
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    FeedScreen(
+        uiState = uiState,
+        onCategorySelected = viewModel::onCategorySelected,
+        onFavouriteClick = viewModel::onFavouriteClick,
+        onRetry = viewModel::onRetry,
+        onListingClick = onListingClick,
+        onProfileClick = onProfileClick
+    )
+}
+
+
+@Composable
+private fun LoadingState() {
+    Box(Modifier.fillMaxWidth().padding(Spacing.md), contentAlignment = Alignment.Center) {
+        CircularProgressIndicator()
     }
 }
 
-@Preview(showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
-private fun FeedScreenDarkPreview() {
-    FoodRescueTheme {
-        FeedScreen(SampleData.listings, onListingClick = {}, onProfileClick = {})
+private fun ErrorState(message: String, onRetry: () -> Unit) {
+    Column(
+        Modifier.fillMaxWidth().padding(Spacing.md),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+    ) {
+        Text(message)
+        Button(onClick = onRetry) { Text("Try again") }
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-private fun FeedScreenEmptyPreview() {
+private fun previewScreenState(state: FeedUiState): @Composable () -> Unit = {
     FoodRescueTheme {
-        FeedScreen(emptyList(), onListingClick = {}, onProfileClick = {})
+        FeedScreen(state, {}, {}, {}, {}, {})
     }
 }
+
+@Preview(showBackground = true) @Composable
+private fun FeedLoadingPreview() = previewScreenState(FeedUiState(isLoading = true))()
+
+@Preview(showBackground = true) @Composable
+private fun FeedContentPreview() {
+    val l = SampleData.listings
+    previewScreenState(
+        FeedUiState(isLoading = false, listings = l, endingSoon = l.sortedBy { it.minutesLeft }.take(5))
+    )()
+}
+
+@Preview(showBackground = true) @Composable
+private fun FeedEmptyPreview() = previewScreenState(FeedUiState(isLoading = false))()
+
+@Preview(showBackground = true) @Composable
+private fun FeedErrorPreview() =
+    previewScreenState(FeedUiState(isLoading = false, error = "Could not load listings"))()
