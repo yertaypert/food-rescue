@@ -7,9 +7,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.yertaypert.foodrescue.data.SampleData
 import com.yertaypert.foodrescue.ui.screens.BusinessSignUpScreen
-import com.yertaypert.foodrescue.ui.screens.DetailScreen
+import com.yertaypert.foodrescue.ui.screens.DetailRoute
 import com.yertaypert.foodrescue.ui.screens.FeedRoute
 import com.yertaypert.foodrescue.ui.screens.FeedScreen
 import com.yertaypert.foodrescue.ui.screens.LoginScreen
@@ -41,7 +40,7 @@ fun AppNavHost() {
             arguments = listOf(navArgument("listingId") { type = NavType.IntType })
         ) { entry ->
             val id = entry.arguments?.getInt("listingId") ?: -1
-            DetailScreen(
+            DetailRoute(
                 listingId = id,
                 onBack = { navController.popBackStack() },
                 onLogin = { navController.navigate(Routes.LOGIN) },

@@ -23,6 +23,7 @@ import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -36,9 +37,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
@@ -46,6 +44,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.yertaypert.foodrescue.data.Listing
 import com.yertaypert.foodrescue.data.SampleData
 import com.yertaypert.foodrescue.ui.components.AuthChoiceDialog
@@ -63,19 +63,18 @@ private fun Listing.endsInText(): String =
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DetailScreen(
-    listingId: Int,
+    uiState: DetailUiState,
     onBack: () -> Unit,
+    onFavouriteClick: () -> Unit,
+    onClaimClick: () -> Unit,
+    onDismissAuthDialog: () -> Unit,
+    onRetry: () -> Unit,
     modifier: Modifier = Modifier,
     onRegisterUser: () -> Unit = {},
     onRegisterGiver: () -> Unit = {},
     onLogin: () -> Unit = {}
 ) {
-    // The screen receives only an id and finds the item itself.
-    val listing = remember(listingId) { SampleData.byId(listingId) }
-
-    var isFavourite by remember { mutableStateOf(false) }
-    var showAuthDialog by remember { mutableStateOf(false) }
-
+    val listing = uiState.listing
     val heroColor = listing?.category?.containerColor() ?: MaterialTheme.colorScheme.surface
 
     Scaffold(
@@ -96,11 +95,11 @@ fun DetailScreen(
                 },
                 actions = {
                     if (listing != null) {
-                        IconButton(onClick = { isFavourite = !isFavourite }) {
+                        IconButton(onClick = onFavouriteClick) {
                             Icon(
-                                imageVector = if (isFavourite) Icons.Filled.Favorite
+                                imageVector = if (uiState.isFavourite) Icons.Filled.Favorite
                                 else Icons.Outlined.FavoriteBorder,
-                                contentDescription = if (isFavourite) "Remove from favourites"
+                                contentDescription = if (uiState.isFavourite) "Remove from favourites"
                                 else "Add to favourites"
                             )
                         }
@@ -115,7 +114,7 @@ fun DetailScreen(
                     Column(modifier = Modifier.navigationBarsPadding()) {
                         HorizontalDivider()
                         Button(
-                            onClick = { showAuthDialog = true },
+                            onClick = onClaimClick,
                             modifier = Modifier.fillMaxWidth().padding(Spacing.md)
                         ) {
                             Text("Claim this listing")
@@ -125,8 +124,18 @@ fun DetailScreen(
             }
         }
     ) { innerPadding ->
-        if (listing == null) {
-            Box(
+        when {
+            uiState.isLoading -> DetailLoading(
+                modifier = Modifier.fillMaxSize().padding(innerPadding)
+            )
+
+            uiState.error != null -> DetailError(
+                message = uiState.error,
+                onRetry = onRetry,
+                modifier = Modifier.fillMaxSize().padding(innerPadding)
+            )
+
+            listing == null -> Box(
                 modifier = Modifier.fillMaxSize().padding(innerPadding),
                 contentAlignment = Alignment.Center
             ) {
@@ -135,8 +144,8 @@ fun DetailScreen(
                     message = "It may have been claimed or removed."
                 )
             }
-        } else {
-            Column(
+
+            else -> Column(
                 modifier = Modifier
                     .padding(innerPadding)
                     .verticalScroll(rememberScrollState())
@@ -258,12 +267,72 @@ fun DetailScreen(
         }
     }
 
-    if (showAuthDialog) {
+    if (uiState.isAuthDialogVisible) {
         AuthChoiceDialog(
-            onDismiss = { showAuthDialog = false },
-            onRegisterUser = { showAuthDialog = false; onRegisterUser() },
-            onRegisterGiver = { showAuthDialog = false; onRegisterGiver() },
-            onLogin = { showAuthDialog = false; onLogin() }
+            onDismiss = onDismissAuthDialog,
+            onRegisterUser = { onDismissAuthDialog(); onRegisterUser() },
+            onRegisterGiver = { onDismissAuthDialog(); onRegisterGiver() },
+            onLogin = { onDismissAuthDialog(); onLogin() }
+        )
+    }
+}
+
+@Composable
+fun DetailRoute(
+    listingId: Int,
+    onBack: () -> Unit,
+    onRegisterUser: () -> Unit,
+    onRegisterGiver: () -> Unit,
+    onLogin: () -> Unit,
+    viewModel: DetailViewModel = viewModel(factory = DetailViewModel.factory(listingId))
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    DetailScreen(
+        uiState = uiState,
+        onBack = onBack,
+        onFavouriteClick = viewModel::onFavouriteClick,
+        onClaimClick = viewModel::onClaimClick,
+        onDismissAuthDialog = viewModel::onAuthDialogDismiss,
+        onRetry = viewModel::onRetry,
+        onRegisterUser = onRegisterUser,
+        onRegisterGiver = onRegisterGiver,
+        onLogin = onLogin
+    )
+}
+
+@Composable
+private fun DetailLoading(modifier: Modifier = Modifier) {
+    Box(modifier = modifier, contentAlignment = Alignment.Center) {
+        CircularProgressIndicator()
+    }
+}
+
+@Composable
+private fun DetailError(
+    message: String,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.padding(Spacing.md),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(message)
+        Button(onClick = onRetry) { Text("Try again") }
+    }
+}
+
+@Composable
+private fun DetailPreviewContent(uiState: DetailUiState) {
+    FoodRescueTheme {
+        DetailScreen(
+            uiState = uiState,
+            onBack = {},
+            onFavouriteClick = {},
+            onClaimClick = {},
+            onDismissAuthDialog = {},
+            onRetry = {}
         )
     }
 }
@@ -271,17 +340,33 @@ fun DetailScreen(
 @Preview(showBackground = true)
 @Composable
 private fun DetailScreenPreview() {
-    FoodRescueTheme { DetailScreen(listingId = 1, onBack = {}) }
+    DetailPreviewContent(
+        DetailUiState(isLoading = false, listing = SampleData.byId(1))
+    )
 }
 
 @Preview(showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 private fun DetailScreenDarkPreview() {
-    FoodRescueTheme { DetailScreen(listingId = 1, onBack = {}) }
+    DetailPreviewContent(
+        DetailUiState(isLoading = false, listing = SampleData.byId(1), isFavourite = true)
+    )
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun DetailScreenLoadingPreview() {
+    DetailPreviewContent(DetailUiState(isLoading = true))
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun DetailScreenErrorPreview() {
+    DetailPreviewContent(DetailUiState(isLoading = false, error = "Could not load listing"))
 }
 
 @Preview(showBackground = true)
 @Composable
 private fun DetailScreenNotFoundPreview() {
-    FoodRescueTheme { DetailScreen(listingId = 999, onBack = {}) }
+    DetailPreviewContent(DetailUiState(isLoading = false))
 }

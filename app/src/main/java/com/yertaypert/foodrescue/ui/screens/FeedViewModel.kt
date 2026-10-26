@@ -16,7 +16,7 @@ import java.io.IOException
 private const val TAG = "FeedViewModel"
 
 class FeedViewModel(
-    private val repository: ListingRepository = ListingRepository()
+    private val repository: ListingRepository = ListingRepository.shared
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FeedUiState())
@@ -27,6 +27,11 @@ class FeedViewModel(
     init {
         Log.d(TAG, "init")
         loadListings()
+        viewModelScope.launch {
+            repository.favouriteIds.collect { ids ->
+                _uiState.update { it.copy(favouriteIds = ids) }
+            }
+        }
     }
 
     fun onCategorySelected(category: Category) {
@@ -37,10 +42,7 @@ class FeedViewModel(
     }
 
     fun onFavouriteClick(id: Int) {
-        viewModelScope.launch {
-            val ids = repository.toggleFavourite(id)
-            _uiState.update { it.copy(favouriteIds = ids) }
-        }
+        repository.toggleFavourite(id)
     }
 
     fun onRetry() = loadListings()
