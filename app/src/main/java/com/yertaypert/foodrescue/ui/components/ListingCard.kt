@@ -24,6 +24,8 @@ import com.yertaypert.foodrescue.data.SampleData
 import com.yertaypert.foodrescue.ui.theme.FoodRescueTheme
 import com.yertaypert.foodrescue.ui.theme.Spacing
 import kotlin.collections.get
+import kotlin.math.round
+import kotlin.math.roundToInt
 
 @Composable
 fun ListingCard(
@@ -57,7 +59,7 @@ fun ListingCard(
                 )
             }
             Text(
-                text = "${listing.distanceKm} km",
+                text = "${round(listing.distanceKm * 10.0) / 10.0} km",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1

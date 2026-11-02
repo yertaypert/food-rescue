@@ -6,11 +6,13 @@ import androidx.lifecycle.viewModelScope
 import com.yertaypert.foodrescue.data.Category
 import com.yertaypert.foodrescue.data.Listing
 import com.yertaypert.foodrescue.data.ListingRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import retrofit2.HttpException
 import java.io.IOException
 
 private const val TAG = "FeedViewModel"
@@ -55,7 +57,26 @@ class FeedViewModel(
                 _uiState.update { applyFilter(it.copy(isLoading = false)) }
             } catch (e: IOException) {
                 _uiState.update {
-                    it.copy(isLoading = false, error = e.message ?: "Something went wrong")
+                    it.copy(
+                        isLoading = false,
+                        error = "No internet connection. Check your connection and try again."
+                    )
+                }
+            } catch (e: HttpException) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        error = "Server error (${e.code()}). Please try again later."
+                    )
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        error = "Something went wrong. Please try again."
+                    )
                 }
             }
         }
