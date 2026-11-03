@@ -12,9 +12,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import com.yertaypert.foodrescue.ui.AppNavHost
-import com.yertaypert.foodrescue.ui.theme.FoodRescueTheme
+import com.yertaypert.foodrescue.presentation.AppNavHost
+import com.yertaypert.foodrescue.presentation.theme.FoodRescueTheme
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private val tag = "MainActivity"
 

@@ -1,7 +1,7 @@
 package com.yertaypert.foodrescue.data.remote
 
-import com.yertaypert.foodrescue.data.Category
-import com.yertaypert.foodrescue.data.Listing
+import com.yertaypert.foodrescue.domain.model.Category
+import com.yertaypert.foodrescue.domain.model.Listing
 
 fun RecipeDto.toListing(): Listing {
     val cuisineName = cuisine.orEmpty().trim()
