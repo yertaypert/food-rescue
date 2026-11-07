@@ -1,14 +1,12 @@
 package com.yertaypert.foodrescue.presentation.screens
 
 import android.util.Log
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.initializer
-import androidx.lifecycle.viewmodel.viewModelFactory
-import com.yertaypert.foodrescue.di.AppContainer
 import com.yertaypert.foodrescue.domain.repository.FavouritesRepository
 import com.yertaypert.foodrescue.domain.repository.ListingRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,14 +14,18 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import java.io.IOException
+import javax.inject.Inject
 
 private const val TAG = "DetailViewModel"
 
-class DetailViewModel(
-    private val listingId: Int,
-    private val listingRepository: ListingRepository = AppContainer.listingRepository,
-    private val favouritesRepository: FavouritesRepository = AppContainer.favouritesRepository
+@HiltViewModel
+class DetailViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
+    private val listingRepository: ListingRepository,
+    private val favouritesRepository: FavouritesRepository
 ) : ViewModel() {
+
+    val listingId: Int = checkNotNull(savedStateHandle["listingId"])
 
     private val _uiState = MutableStateFlow<DetailUiState>(DetailUiState.Loading)
     val uiState: StateFlow<DetailUiState> = _uiState.asStateFlow()
@@ -95,17 +97,5 @@ class DetailViewModel(
     override fun onCleared() {
         Log.d(TAG, "onCleared")
         super.onCleared()
-    }
-
-    companion object {
-        fun factory(
-            listingId: Int,
-            listingRepository: ListingRepository = AppContainer.listingRepository,
-            favouritesRepository: FavouritesRepository = AppContainer.favouritesRepository
-        ): ViewModelProvider.Factory = viewModelFactory {
-            initializer {
-                DetailViewModel(listingId, listingRepository, favouritesRepository)
-            }
-        }
     }
 }

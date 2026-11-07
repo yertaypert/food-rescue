@@ -72,7 +72,7 @@ fun EndingSoonCard(
                 overflow = TextOverflow.Ellipsis
             )
             Text(
-                text = "${listing.giverName} · ${listing.distanceKm} km",
+                text = "${listing.giverName} · ${listing.formattedDistance}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,

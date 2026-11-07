@@ -5,8 +5,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class FavouritesRepositoryImpl : FavouritesRepository {
+@Singleton
+class FavouritesRepositoryImpl @Inject constructor() : FavouritesRepository {
     private val _favouriteIds = MutableStateFlow<Set<Int>>(emptySet())
     override val favouriteIds: StateFlow<Set<Int>> = _favouriteIds.asStateFlow()
 
@@ -14,9 +17,5 @@ class FavouritesRepositoryImpl : FavouritesRepository {
         _favouriteIds.update { ids ->
             if (id in ids) ids - id else ids + id
         }
-    }
-
-    companion object {
-        val shared = FavouritesRepositoryImpl()
     }
 }

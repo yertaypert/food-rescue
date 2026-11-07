@@ -38,10 +38,8 @@ fun AppNavHost() {
         composable(
             route = Routes.DETAIL,
             arguments = listOf(navArgument("listingId") { type = NavType.IntType })
-        ) { entry ->
-            val id = entry.arguments?.getInt("listingId") ?: -1
+        ) {
             DetailRoute(
-                listingId = id,
                 onBack = { navController.popBackStack() },
                 onLogin = { navController.navigate(Routes.LOGIN) },
                 onRegisterUser = { navController.navigate(Routes.SIGNUP_USER) },

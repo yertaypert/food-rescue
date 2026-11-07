@@ -44,8 +44,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.yertaypert.foodrescue.R
 import com.yertaypert.foodrescue.data.local.SampleData
 import com.yertaypert.foodrescue.domain.model.Listing
@@ -229,7 +229,7 @@ fun DetailScreen(
                         )
                         InfoTile(
                             icon = Icons.Outlined.LocationOn,
-                            title = "${listing.distanceKm} km away",
+                            title = "${listing.formattedDistance} away",
                             subtitle = listing.area,
                             modifier = Modifier.weight(1f)
                         )
@@ -284,12 +284,11 @@ fun DetailScreen(
 
 @Composable
 fun DetailRoute(
-    listingId: Int,
     onBack: () -> Unit,
     onRegisterUser: () -> Unit,
     onRegisterGiver: () -> Unit,
     onLogin: () -> Unit,
-    viewModel: DetailViewModel = viewModel(factory = DetailViewModel.factory(listingId))
+    viewModel: DetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     DetailScreen(

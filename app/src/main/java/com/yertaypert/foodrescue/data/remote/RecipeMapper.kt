@@ -13,7 +13,7 @@ fun RecipeDto.toListing(): Listing {
         id = id,
         title = name.orEmpty().ifBlank { "Untitled recipe" },
         giverName = if (cuisineName.isBlank()) "DummyJSON Kitchen" else "$cuisineName Kitchen",
-        distanceKm = (id % 15 + 1) / 10.0 + 0.3,
+        distanceKm = ((id % 15 + 1) + 3) / 10.0,
         category = toCategory(),
         minutesLeft = totalMinutes.coerceAtLeast(1),
         description = instructions
