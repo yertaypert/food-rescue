@@ -1,5 +1,13 @@
 package com.yertaypert.foodrescue.presentation.screens
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.provider.Settings
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -16,6 +24,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.LocationOff
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Person
@@ -27,13 +36,24 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import com.yertaypert.foodrescue.domain.model.Category
 import com.yertaypert.foodrescue.presentation.components.CategoryChip
 import com.yertaypert.foodrescue.presentation.components.EmptyState
@@ -54,7 +74,11 @@ fun FeedScreen(
     onListingClick: (Int) -> Unit,
     onProfileClick: () -> Unit,
     modifier: Modifier = Modifier,
-    onNotificationsClick: () -> Unit = {}
+    onNotificationsClick: () -> Unit = {},
+    locationStatus: LocationStatus = LocationStatus.Pending,
+    onEnableLocationClick: () -> Unit = {},
+    onRetryLocationClick: () -> Unit = {},
+    onLocationServicesClick: () -> Unit = {}
 ) {
     val selectedCategory = (uiState as? FeedUiState.Success)?.selectedCategory
 
@@ -64,9 +88,18 @@ fun FeedScreen(
             TopAppBar(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Outlined.LocationOn, contentDescription = null)
+                        Icon(
+                            imageVector = if (locationStatus is LocationStatus.Denied ||
+                                locationStatus is LocationStatus.ServicesOff
+                            ) {
+                                Icons.Outlined.LocationOff
+                            } else {
+                                Icons.Outlined.LocationOn
+                            },
+                            contentDescription = null
+                        )
                         Text(
-                            text = "Almaty · 2 km",
+                            text = locationTitle(locationStatus),
                             modifier = Modifier.padding(start = Spacing.sm),
                             style = MaterialTheme.typography.titleMedium
                         )
@@ -110,6 +143,34 @@ fun FeedScreen(
             contentPadding = PaddingValues(Spacing.md),
             verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
+            when (locationStatus) {
+                LocationStatus.Denied -> item(key = "location_banner") {
+                    LocationBanner(
+                        message = "Location is off — showing all listings.",
+                        actionLabel = "Enable",
+                        onAction = onEnableLocationClick
+                    )
+                }
+
+                LocationStatus.ServicesOff -> item(key = "location_banner") {
+                    LocationBanner(
+                        message = "Location services are off — showing all listings.",
+                        actionLabel = "Turn on",
+                        onAction = onLocationServicesClick
+                    )
+                }
+
+                LocationStatus.NoFix -> item(key = "location_banner") {
+                    LocationBanner(
+                        message = "We couldn't get a location fix — try again, ideally near a window.",
+                        actionLabel = "Retry",
+                        onAction = onRetryLocationClick
+                    )
+                }
+
+                else -> Unit
+            }
+
             item {
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     items(Category.entries, key = { it.name }) { category ->
@@ -164,13 +225,77 @@ fun FeedRoute(
     viewModel: FeedViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val locationStatus by viewModel.locationStatus.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val activity = context as? ComponentActivity
+    val locationPermission = Manifest.permission.ACCESS_COARSE_LOCATION
+
+    var askedOnce by rememberSaveable { mutableStateOf(false) }
+    var permanentlyDenied by rememberSaveable { mutableStateOf(false) }
+
+    fun isLocationPermissionGranted(): Boolean =
+        ContextCompat.checkSelfPermission(context, locationPermission) ==
+            PackageManager.PERMISSION_GRANTED
+
+    fun openAppSettings() {
+        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+            data = Uri.fromParts("package", context.packageName, null)
+        }
+        context.startActivity(intent)
+    }
+
+    fun openLocationSettings() {
+        context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        askedOnce = true
+        if (granted) {
+            permanentlyDenied = false
+            viewModel.onLocationPermissionGranted()
+        } else {
+            // No rationale offered means "don't ask again" was chosen.
+            permanentlyDenied = activity?.let {
+                !ActivityCompat.shouldShowRequestPermissionRationale(it, locationPermission)
+            } ?: true
+            viewModel.onLocationPermissionDenied()
+        }
+    }
+
+    // Ask once, right when the feed (the start destination) first appears.
+    LaunchedEffect(Unit) {
+        if (isLocationPermissionGranted()) {
+            viewModel.onLocationPermissionGranted()
+        } else if (!askedOnce) {
+            askedOnce = true
+            permissionLauncher.launch(locationPermission)
+        }
+    }
+
+    // Re-check on resume so enabling (or revoking) the permission in Settings is picked up.
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        if (isLocationPermissionGranted()) {
+            viewModel.onLocationPermissionGranted()
+        } else if (askedOnce) {
+            viewModel.onLocationPermissionDenied()
+        }
+    }
+
     FeedScreen(
         uiState = uiState,
         onCategorySelected = viewModel::onCategorySelected,
         onFavouriteClick = viewModel::onFavouriteClick,
         onRetry = viewModel::onRetry,
         onListingClick = onListingClick,
-        onProfileClick = onProfileClick
+        onProfileClick = onProfileClick,
+        locationStatus = locationStatus,
+        onEnableLocationClick = {
+            if (permanentlyDenied) openAppSettings() else permissionLauncher.launch(locationPermission)
+        },
+        onRetryLocationClick = viewModel::onRetryLocation,
+        onLocationServicesClick = { openLocationSettings() }
     )
 }
 
@@ -179,6 +304,44 @@ fun FeedRoute(
 private fun LoadingState() {
     Box(Modifier.fillMaxWidth().padding(Spacing.md), contentAlignment = Alignment.Center) {
         CircularProgressIndicator()
+    }
+}
+
+private fun locationTitle(status: LocationStatus): String = when (status) {
+    is LocationStatus.Granted -> status.displayName
+    LocationStatus.Pending -> "Nearby"
+    LocationStatus.Denied, LocationStatus.ServicesOff -> "Location off"
+    LocationStatus.NoFix -> "Location unavailable"
+}
+
+@Composable
+private fun LocationBanner(
+    message: String,
+    actionLabel: String,
+    onAction: () -> Unit
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        shape = MaterialTheme.shapes.medium,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(
+                start = Spacing.md,
+                end = Spacing.xs,
+                top = Spacing.xs,
+                bottom = Spacing.xs
+            ),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.weight(1f)
+            )
+            TextButton(onClick = onAction) { Text(actionLabel) }
+        }
     }
 }
 

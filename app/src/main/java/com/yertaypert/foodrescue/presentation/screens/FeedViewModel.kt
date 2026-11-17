@@ -3,6 +3,8 @@ package com.yertaypert.foodrescue.presentation.screens
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.yertaypert.foodrescue.domain.location.LocationOutcome
+import com.yertaypert.foodrescue.domain.location.LocationProvider
 import com.yertaypert.foodrescue.domain.model.Category
 import com.yertaypert.foodrescue.domain.model.Listing
 import com.yertaypert.foodrescue.domain.repository.FavouritesRepository
@@ -22,11 +24,15 @@ private const val TAG = "FeedViewModel"
 @HiltViewModel
 class FeedViewModel @Inject constructor(
     private val listingRepository: ListingRepository,
-    private val favouritesRepository: FavouritesRepository
+    private val favouritesRepository: FavouritesRepository,
+    private val locationProvider: LocationProvider
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<FeedUiState>(FeedUiState.Loading)
     val uiState: StateFlow<FeedUiState> = _uiState.asStateFlow()
+
+    private val _locationStatus = MutableStateFlow<LocationStatus>(LocationStatus.Pending)
+    val locationStatus: StateFlow<LocationStatus> = _locationStatus.asStateFlow()
 
     private var allListings: List<Listing> = emptyList()
     private var selectedCategory: Category? = null
@@ -57,6 +63,29 @@ class FeedViewModel @Inject constructor(
     }
 
     fun onRetry() = loadListings()
+
+    fun onLocationPermissionGranted() {
+        viewModelScope.launch {
+            val outcome = try {
+                locationProvider.getCurrentLocation()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                LocationOutcome.NoFix
+            }
+            _locationStatus.value = when (outcome) {
+                is LocationOutcome.Success -> LocationStatus.Granted(outcome.data.displayName)
+                LocationOutcome.ServicesOff -> LocationStatus.ServicesOff
+                LocationOutcome.NoFix -> LocationStatus.NoFix
+            }
+        }
+    }
+
+    fun onLocationPermissionDenied() {
+        _locationStatus.value = LocationStatus.Denied
+    }
+
+    fun onRetryLocation() = onLocationPermissionGranted()
 
     private fun loadListings() {
         viewModelScope.launch {

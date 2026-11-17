@@ -1,7 +1,9 @@
 package com.yertaypert.foodrescue.di
 
+import com.yertaypert.foodrescue.data.location.AndroidLocationProvider
 import com.yertaypert.foodrescue.data.repository.FavouritesRepositoryImpl
 import com.yertaypert.foodrescue.data.repository.ListingRepositoryImpl
+import com.yertaypert.foodrescue.domain.location.LocationProvider
 import com.yertaypert.foodrescue.domain.repository.FavouritesRepository
 import com.yertaypert.foodrescue.domain.repository.ListingRepository
 import dagger.Binds
@@ -25,4 +27,10 @@ abstract class AppModule {
     abstract fun bindFavouritesRepository(
         impl: FavouritesRepositoryImpl
     ): FavouritesRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindLocationProvider(
+        impl: AndroidLocationProvider
+    ): LocationProvider
 }
