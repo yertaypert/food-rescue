@@ -7,12 +7,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.yertaypert.foodrescue.presentation.screens.BusinessSignUpScreen
+import com.yertaypert.foodrescue.presentation.screens.BusinessSignUpRoute
 import com.yertaypert.foodrescue.presentation.screens.DetailRoute
 import com.yertaypert.foodrescue.presentation.screens.FeedRoute
-import com.yertaypert.foodrescue.presentation.screens.FeedScreen
-import com.yertaypert.foodrescue.presentation.screens.LoginScreen
-import com.yertaypert.foodrescue.presentation.screens.SignUpScreen
+import com.yertaypert.foodrescue.presentation.screens.LoginRoute
+import com.yertaypert.foodrescue.presentation.screens.SignUpRoute
 
 object Routes {
     const val FEED = "feed"
@@ -47,10 +46,8 @@ fun AppNavHost() {
             )
         }
         composable(Routes.LOGIN) {
-            LoginScreen(
+            LoginRoute(
                 onBack = { navController.popBackStack() },
-                onSubmit = { _, _ -> /* UI only for now */ },
-                onForgotPassword = {},
                 onRegisterUser = {
                     navController.navigate(Routes.SIGNUP_USER) {
                         popUpTo(Routes.LOGIN) { inclusive = true }
@@ -62,31 +59,32 @@ fun AppNavHost() {
                         popUpTo(Routes.LOGIN) { inclusive = true }
                         launchSingleTop = true
                     }
-                }
+                },
+                onSignedIn = { navController.popBackStack() }
             )
         }
         composable(Routes.SIGNUP_USER) {
-            SignUpScreen(
+            SignUpRoute(
                 onBack = { navController.popBackStack() },
-                onSubmit = { _, _, _ -> /* UI only for now */ },
                 onLogin = {
                     navController.navigate(Routes.LOGIN) {
                         popUpTo(Routes.SIGNUP_USER) { inclusive = true }
                         launchSingleTop = true
                     }
-                }
+                },
+                onAccountCreated = { navController.popBackStack() }
             )
         }
         composable(Routes.SIGNUP_GIVER) {
-            BusinessSignUpScreen(
+            BusinessSignUpRoute(
                 onBack = { navController.popBackStack() },
-                onSubmit = { _, _, _, _, _ -> /* UI only for now */ },
                 onLogin = {
                     navController.navigate(Routes.LOGIN) {
                         popUpTo(Routes.SIGNUP_GIVER) { inclusive = true }
                         launchSingleTop = true
                     }
-                }
+                },
+                onAccountCreated = { navController.popBackStack() }
             )
         }
         composable(Routes.PROFILE) {

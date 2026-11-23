@@ -8,7 +8,7 @@ An Android app that connects people with surplus food (restaurants, bakeries, in
 - Filter the feed by category (bakery, meals, produce, drinks, dairy)
 - View full details of a single listing
 - Favourite listings (kept for the current session)
-- Authentication screens — account type choice, log in, user sign-up, business sign-up (UI only at this stage)
+- Authentication — account type choice, log in, user sign-up, business sign-up, and password reset, backed by Firebase Authentication; profiles are stored in Firestore
 - Empty state when no listings match
 - Location-aware feed — see below
 
@@ -34,6 +34,7 @@ The feed is proximity based, so on first launch the app asks for the coarse loca
 - MVVM with unidirectional state (`StateFlow` UI state per screen)
 - Hilt for dependency injection
 - Retrofit + Gson for the network layer
+- Firebase Authentication (email/password) + Cloud Firestore (user profiles)
 - Navigation Compose
 - Play Services Location (fused provider) + framework Geocoder
 - Kotlin coroutines + Flow
@@ -49,15 +50,16 @@ app/src/main/java/com/yertaypert/foodrescue/
 │   ├── location/                   # Fused-location provider implementation
 │   ├── remote/                     # Retrofit API, DTOs, mapper
 │   └── repository/                 # Repository implementations
-├── di/                             # Hilt modules (network, repository bindings)
+├── di/                             # Hilt modules (network, auth, Firestore, repository bindings)
 ├── domain/
 │   ├── location/                   # LocationProvider interface + LocationOutcome
-│   ├── model/                      # Listing, Category, LocationData
+│   ├── model/                      # Listing, Category, LocationData, UserProfile
 │   └── repository/                 # Repository interfaces
 └── presentation/
     ├── AppNavHost.kt               # Navigation graph
     ├── components/                 # Reusable composables (cards, chips, banners, ...)
     ├── screens/                    # Feed, Detail, Login, Sign-up + ViewModels / UI states
+    ├── util/                       # Shared validation + auth error messages
     └── theme/                      # Color, typography, spacing
 ```
 
@@ -65,7 +67,23 @@ app/src/main/java/com/yertaypert/foodrescue/
 
 Diagram: `design/MVVM architecture.png`
 
-UI (Compose) renders purely from ViewModel state (`StateFlow`) → ViewModels talk to repository interfaces → implementations in the data layer wrap the remote API and the location provider. Hilt binds interfaces to implementations in `di/`. ViewModels survive configuration changes, so state (category filter, favourites, location status) is not lost on rotation.
+UI (Compose) renders purely from ViewModel state (`StateFlow`) → ViewModels talk to repository interfaces → implementations in the data layer wrap the remote API, Firebase Auth/Firestore, and the location provider. Hilt binds interfaces to implementations in `di/`. ViewModels survive configuration changes, so form input, submit state, category filter, favourites, and location status are not lost on rotation.
+
+## Firebase setup
+
+The project is already linked to the `food-rescue-75ada` Firebase project (`app/google-services.json`). One-time console steps to make auth work in a fresh project:
+
+1. **Authentication → Sign-in method → Email/Password → Enable**
+2. **Firestore Database → Create database → Native mode**, region closest to you
+3. Publish `firestore.rules` — paste it in **Firestore → Rules**, or deploy with the Firebase CLI:
+
+```bash
+npm install -g firebase-tools
+firebase login
+firebase deploy --only firestore:rules
+```
+
+Every sign-up writes a `users/{uid}` document with `email`, `displayName`, `accountType` (`user` / `business`), `businessType`, `address`, and `createdAt`. The rules only let a signed-in user read and write their own document. Password reset uses Firebase's hosted email — no extra setup.
 
 ## Build & run
 

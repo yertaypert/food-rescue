@@ -19,3 +19,9 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Firebase CLI artifacts
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
