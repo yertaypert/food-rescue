@@ -10,7 +10,8 @@ sealed interface DetailUiState {
     data class Success(
         val listing: Listing,
         val isFavourite: Boolean = false,
-        val isAuthDialogVisible: Boolean = false
+        val isAuthDialogVisible: Boolean = false,
+        val isClaimed: Boolean = false
     ) : DetailUiState
 
     data class Error(val message: String) : DetailUiState

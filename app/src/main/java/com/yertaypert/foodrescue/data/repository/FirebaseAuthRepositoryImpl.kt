@@ -22,6 +22,9 @@ class FirebaseAuthRepositoryImpl @Inject constructor(
     override val currentUserId: String?
         get() = firebaseAuth.currentUser?.uid
 
+    override val currentUserEmail: String?
+        get() = firebaseAuth.currentUser?.email
+
     override suspend fun signUp(
         email: String,
         password: String,
@@ -88,6 +91,10 @@ class FirebaseAuthRepositoryImpl @Inject constructor(
             Log.w(TAG, "Password reset failed", e)
             AuthResult.Error(AuthError.Unknown)
         }
+    }
+
+    override fun signOut() {
+        firebaseAuth.signOut()
     }
 
     private fun FirebaseAuthException.toAuthError(): AuthError = when (errorCode) {

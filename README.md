@@ -7,8 +7,9 @@ An Android app that connects people with surplus food (restaurants, bakeries, in
 - Browse a feed of active food listings — "Ending soon" highlights plus a "Near you" list, loaded from a remote REST API with error and retry states
 - Filter the feed by category (bakery, meals, produce, drinks, dairy)
 - View full details of a single listing
+- Claim a listing — sign-in required; the claimed state is kept for the current session
 - Favourite listings (kept for the current session)
-- Authentication — account type choice, log in, user sign-up, business sign-up, and password reset, backed by Firebase Authentication; profiles are stored in Firestore
+- Authentication — account type choice, log in, user sign-up, business sign-up, password reset, account screen with log out, backed by Firebase Authentication; the feed and detail screens are browsable without an account, while claiming and the account screen require sign-in; profiles are stored in Firestore
 - Empty state when no listings match
 - Location-aware feed — see below
 
@@ -34,7 +35,7 @@ The feed is proximity based, so on first launch the app asks for the coarse loca
 - MVVM with unidirectional state (`StateFlow` UI state per screen)
 - Hilt for dependency injection
 - Retrofit + Gson for the network layer
-- Firebase Authentication (email/password) + Cloud Firestore (user profiles)
+- Firebase Authentication (email/password) + Cloud Firestore (user profiles), plus the Analytics and Messaging SDKs
 - Navigation Compose
 - Play Services Location (fused provider) + framework Geocoder
 - Kotlin coroutines + Flow
@@ -58,7 +59,7 @@ app/src/main/java/com/yertaypert/foodrescue/
 └── presentation/
     ├── AppNavHost.kt               # Navigation graph
     ├── components/                 # Reusable composables (cards, chips, banners, ...)
-    ├── screens/                    # Feed, Detail, Login, Sign-up + ViewModels / UI states
+    ├── screens/                    # Feed, Detail, Login, Sign-up, Profile + ViewModels / UI states
     ├── util/                       # Shared validation + auth error messages
     └── theme/                      # Color, typography, spacing
 ```
@@ -67,7 +68,7 @@ app/src/main/java/com/yertaypert/foodrescue/
 
 Diagram: `design/MVVM architecture.png`
 
-UI (Compose) renders purely from ViewModel state (`StateFlow`) → ViewModels talk to repository interfaces → implementations in the data layer wrap the remote API, Firebase Auth/Firestore, and the location provider. Hilt binds interfaces to implementations in `di/`. ViewModels survive configuration changes, so form input, submit state, category filter, favourites, and location status are not lost on rotation.
+UI (Compose) renders purely from ViewModel state (`StateFlow`) → ViewModels talk to repository interfaces → implementations in the data layer wrap the remote API, Firebase Auth/Firestore, and the location provider. Hilt binds interfaces to implementations in `di/`. ViewModels survive configuration changes, so form input, submit state, category filter, favourites, and location status are not lost on rotation. `AppNavHost` always starts on `FEED`; the persisted session only decides whether the profile icon opens the account screen or login.
 
 ## Firebase setup
 

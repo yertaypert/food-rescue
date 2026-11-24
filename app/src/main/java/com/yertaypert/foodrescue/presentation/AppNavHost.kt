@@ -1,7 +1,7 @@
 package com.yertaypert.foodrescue.presentation
 
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -11,6 +11,7 @@ import com.yertaypert.foodrescue.presentation.screens.BusinessSignUpRoute
 import com.yertaypert.foodrescue.presentation.screens.DetailRoute
 import com.yertaypert.foodrescue.presentation.screens.FeedRoute
 import com.yertaypert.foodrescue.presentation.screens.LoginRoute
+import com.yertaypert.foodrescue.presentation.screens.ProfileRoute
 import com.yertaypert.foodrescue.presentation.screens.SignUpRoute
 
 object Routes {
@@ -26,12 +27,20 @@ object Routes {
 @Composable
 fun AppNavHost() {
     val navController = rememberNavController()
+    val sessionViewModel: SessionViewModel = hiltViewModel()
 
     NavHost(navController = navController, startDestination = Routes.FEED) {
         composable(Routes.FEED) {
             FeedRoute(
                 onListingClick = { id -> navController.navigate(Routes.detail(id)) },
-                onProfileClick = { navController.navigate(Routes.LOGIN) }
+                onProfileClick = {
+                    val destination = if (sessionViewModel.isSignedIn()) {
+                        Routes.PROFILE
+                    } else {
+                        Routes.LOGIN
+                    }
+                    navController.navigate(destination)
+                }
             )
         }
         composable(
@@ -50,13 +59,11 @@ fun AppNavHost() {
                 onBack = { navController.popBackStack() },
                 onRegisterUser = {
                     navController.navigate(Routes.SIGNUP_USER) {
-                        popUpTo(Routes.LOGIN) { inclusive = true }
                         launchSingleTop = true
                     }
                 },
                 onRegisterGiver = {
                     navController.navigate(Routes.SIGNUP_GIVER) {
-                        popUpTo(Routes.LOGIN) { inclusive = true }
                         launchSingleTop = true
                     }
                 },
@@ -72,7 +79,15 @@ fun AppNavHost() {
                         launchSingleTop = true
                     }
                 },
-                onAccountCreated = { navController.popBackStack() }
+                onAccountCreated = {
+                    when (navController.previousBackStackEntry?.destination?.route) {
+                        Routes.DETAIL -> navController.popBackStack()
+                        else -> navController.navigate(Routes.FEED) {
+                            popUpTo(Routes.LOGIN) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    }
+                }
             )
         }
         composable(Routes.SIGNUP_GIVER) {
@@ -84,11 +99,30 @@ fun AppNavHost() {
                         launchSingleTop = true
                     }
                 },
-                onAccountCreated = { navController.popBackStack() }
+                onAccountCreated = {
+                    when (navController.previousBackStackEntry?.destination?.route) {
+                        Routes.DETAIL -> navController.popBackStack()
+                        else -> navController.navigate(Routes.FEED) {
+                            popUpTo(Routes.LOGIN) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    }
+                }
             )
         }
         composable(Routes.PROFILE) {
-            Text("Profile (placeholder)")
+            ProfileRoute(
+                onBack = { navController.popBackStack() },
+                onSignedOut = {
+                    // Return to the feed as a guest; it is always browsable.
+                    if (!navController.popBackStack()) {
+                        navController.navigate(Routes.FEED) {
+                            popUpTo(Routes.PROFILE) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    }
+                }
+            )
         }
     }
 }

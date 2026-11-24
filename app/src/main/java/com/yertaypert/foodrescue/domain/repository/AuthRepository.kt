@@ -20,10 +20,13 @@ enum class AuthError {
 
 interface AuthRepository {
     val currentUserId: String?
+    val currentUserEmail: String?
 
     suspend fun signUp(email: String, password: String, displayName: String): AuthResult
 
     suspend fun signIn(email: String, password: String): AuthResult
 
     suspend fun sendPasswordResetEmail(email: String): AuthResult
+
+    fun signOut()
 }

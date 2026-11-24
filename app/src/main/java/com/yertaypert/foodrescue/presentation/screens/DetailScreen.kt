@@ -18,6 +18,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.LocationOn
@@ -117,9 +118,10 @@ fun DetailScreen(
                         HorizontalDivider()
                         Button(
                             onClick = onClaimClick,
+                            enabled = success?.isClaimed != true,
                             modifier = Modifier.fillMaxWidth().padding(Spacing.md)
                         ) {
-                            Text("Claim this listing")
+                            Text(if (success?.isClaimed == true) "Claimed" else "Claim this listing")
                         }
                     }
                 }
@@ -255,12 +257,20 @@ fun DetailScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
-                                imageVector = Icons.Outlined.Lock,
+                                imageVector = if (state.isClaimed) {
+                                    Icons.Outlined.CheckCircle
+                                } else {
+                                    Icons.Outlined.Lock
+                                },
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
-                                text = "Exact pickup address is revealed after you claim this listing.",
+                                text = if (state.isClaimed) {
+                                    "You claimed this listing. The giver will share pickup details."
+                                } else {
+                                    "Exact pickup address is revealed after you claim this listing."
+                                },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

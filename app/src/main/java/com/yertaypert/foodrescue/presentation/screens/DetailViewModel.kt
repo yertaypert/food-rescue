@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.yertaypert.foodrescue.domain.repository.AuthRepository
 import com.yertaypert.foodrescue.domain.repository.FavouritesRepository
 import com.yertaypert.foodrescue.domain.repository.ListingRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -22,7 +23,8 @@ private const val TAG = "DetailViewModel"
 class DetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val listingRepository: ListingRepository,
-    private val favouritesRepository: FavouritesRepository
+    private val favouritesRepository: FavouritesRepository,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     val listingId: Int = checkNotNull(savedStateHandle["listingId"])
@@ -50,8 +52,12 @@ class DetailViewModel @Inject constructor(
     }
 
     fun onClaimClick() {
-        (_uiState.value as? DetailUiState.Success)?.let { state ->
-            _uiState.value = state.copy(isAuthDialogVisible = true)
+        val state = _uiState.value as? DetailUiState.Success ?: return
+        _uiState.value = if (authRepository.currentUserId != null) {
+            // Claiming is session-local until a claims backend exists.
+            state.copy(isClaimed = true)
+        } else {
+            state.copy(isAuthDialogVisible = true)
         }
     }
 
