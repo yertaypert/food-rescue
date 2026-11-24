@@ -3,6 +3,9 @@ package com.yertaypert.foodrescue.data.repository
 import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthException
+import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
+import com.google.firebase.auth.FirebaseAuthInvalidUserException
+import com.google.firebase.auth.FirebaseAuthWeakPasswordException
 import com.google.firebase.auth.UserProfileChangeRequest
 import com.yertaypert.foodrescue.domain.repository.AuthError
 import com.yertaypert.foodrescue.domain.repository.AuthRepository
@@ -98,23 +101,36 @@ class FirebaseAuthRepositoryImpl @Inject constructor(
     }
 
     private fun FirebaseAuthException.toAuthError(): AuthError = when (errorCode) {
-        "ERROR_EMAIL_ALREADY_IN_USE" -> AuthError.EmailInUse
+        "ERROR_EMAIL_ALREADY_IN_USE",
+        "ERROR_CREDENTIAL_ALREADY_IN_USE" -> AuthError.EmailInUse
         "ERROR_WEAK_PASSWORD" -> AuthError.WeakPassword
         "ERROR_INVALID_EMAIL" -> AuthError.InvalidEmail
         "ERROR_OPERATION_NOT_ALLOWED" -> AuthError.ProviderDisabled
+        "ERROR_INVALID_CREDENTIAL" -> AuthError.InvalidCredentials
         "ERROR_USER_NOT_FOUND" -> AuthError.UserNotFound
         "ERROR_USER_DISABLED" -> AuthError.UserDisabled
+        "ERROR_QUOTA_EXCEEDED",
         "ERROR_TOO_MANY_REQUESTS" -> AuthError.TooManyRequests
         "ERROR_NETWORK_REQUEST_FAILED" -> AuthError.Network
         else -> AuthError.Unknown
     }
 
-    private fun FirebaseAuthException.toSignInError(): AuthError = when (errorCode) {
-        // These deliberately share one message so we don't reveal which emails are registered.
-        "ERROR_INVALID_LOGIN_CREDENTIALS",
-        "ERROR_WRONG_PASSWORD",
-        "ERROR_INVALID_PASSWORD",
-        "ERROR_USER_NOT_FOUND" -> AuthError.InvalidCredentials
-        else -> toAuthError()
+    private fun FirebaseAuthException.toSignInError(): AuthError = when (this) {
+        // With email-enumeration protection on (the default for new projects), Firebase
+        // reports a wrong password as ERROR_INVALID_CREDENTIAL, so match by type first.
+        is FirebaseAuthWeakPasswordException -> AuthError.WeakPassword
+        is FirebaseAuthInvalidCredentialsException -> AuthError.InvalidCredentials
+        is FirebaseAuthInvalidUserException ->
+            if (errorCode == "ERROR_USER_DISABLED") {
+                AuthError.UserDisabled
+            } else {
+                AuthError.InvalidCredentials
+            }
+        else -> when (errorCode) {
+            "ERROR_INVALID_CREDENTIAL",
+            "ERROR_WRONG_PASSWORD",
+            "ERROR_USER_NOT_FOUND" -> AuthError.InvalidCredentials
+            else -> toAuthError()
+        }
     }
 }
